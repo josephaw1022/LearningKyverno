@@ -4,8 +4,11 @@ vars:
   CLUSTER_NAME: "kyverno-spike"
   METALLB_CONFIG: "./manifests/metallb-config.yaml"
 
+  TEST_RELEASE_NAME: "nginx-app"
+  TEST_NAMESPACE: "nginx-app"
+
 includes:
-  helm:
+  cluster:
     dir: scripts
     taskfile: scripts/Taskfile.yaml
   manifests:
@@ -20,3 +23,25 @@ tasks:
     desc: "List all tasks"
     cmds:
       - task --list-all
+
+  quickstart:
+    desc: "Creates the cluster, installs all of the dependencies, configures MetaLB and Istio, installs the fallback app, installs the Kyverno helm chart, adds the policies, and tests the policies"
+    cmds:
+      - task: cluster:delete
+        quiet: true
+        ignore_error: true
+
+      - task: cluster:create
+        quiet: true
+
+      - task: policy-test:setup
+
+      - task: policy-test:run
+        ignore_error: true
+    quiet: true
+  
+  clean:
+    desc: "Deletes the cluster"
+    cmds:
+      - task cluster:delete
+    quiet: true

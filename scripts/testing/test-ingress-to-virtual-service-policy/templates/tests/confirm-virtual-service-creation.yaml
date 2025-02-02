@@ -1,37 +1,57 @@
 ---
-
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: virtualservice-test-sa
-  namespace: keycloak
 
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: virtualservice-test-cluster-admin
 subjects:
   - kind: ServiceAccount
-    name: default
-    namespace: keycloak
+    name: virtualservice-test-sa
+    namespace: {{ .Release.Namespace }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 
-
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: virtualservice-test-role
+rules:
+  - apiGroups: ["networking.istio.io"]
+    resources: ["virtualservices"]
+    verbs: ["get", "list", "watch"]
 
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: virtualservice-test-rolebinding
+  namespace: {{ .Release.Namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: virtualservice-test-sa
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: virtualservice-test-role
 
+---
 apiVersion: v1
 kind: Pod
 metadata:
   name: test-virtualservice
-  namespace: keycloak
   annotations:
-    "helm.sh/hook": test
+    "helm.sh/hook": "test"
+    sidecar.istio.io/inject: "false"
+  namespace: {{ .Release.Namespace }}
 spec:
   restartPolicy: Never
   serviceAccountName: virtualservice-test-sa
@@ -43,4 +63,4 @@ spec:
         - -c
         - |
           echo "Checking if VirtualService exists..."
-          kubectl get virtualservice keycloak-vs -n keycloak || exit 1
+          kubectl get virtualservice nginx-app-vs -n nginx-app  || exit 1

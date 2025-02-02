@@ -33,13 +33,13 @@ spec:
             secretName: kyverno-spike.test-tls
   destination:
     server: https://kubernetes.default.svc
-    namespace: nginx
+    namespace: nginx-app
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-  managedNamespaceMetadata:
-    labels:
-      istio-injection: enabled
+    managedNamespaceMetadata:
+      labels:
+        istio-injection: enabled

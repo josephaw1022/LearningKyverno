@@ -1,32 +1,32 @@
 version: "3"
 
 tasks:
-  policy-test-setup:
-    desc: "Run the policy test setup: Creates an Argo app that installs Keycloak with an ingress"
+  setup:
+    desc: "Run the policy test setup: Creates an Argo app that installs Nginx with an ingress"
     cmds:
-      - helm upgrade --install --wait keycloak-app . -n keycloak --create-namespace
+      - helm upgrade --install --wait {{ .TEST_RELEASE_NAME }} . -n {{ .TEST_NAMESPACE }} --create-namespace
     aliases:
-      - deploy-keycloak
+      - deploy-nginx-app
 
-  policy-test-describe:
+  describe:
     desc: "Describe the policy test setup"
     cmds:
-      - kubectl describe app keycloak-app -n argocd
-      - kubectl get all -n keycloak
+      - kubectl describe app {{ .TEST_RELEASE_NAME }} -n {{ .TEST_NAMESPACE }}
+      - kubectl get all -n {{ .TEST_NAMESPACE }}
 
-  policy-test-run:
+
+  run:
     desc: "Run the policy test helm tests"
     cmds:
-      - helm test keycloak-app
+      - helm test {{ .TEST_RELEASE_NAME }} -n {{ .TEST_NAMESPACE }}
     aliases:
-      - run-tests
       - tests
       - test
 
-  policy-test-teardown:
+  teardown:
     desc: "Run the policy test teardown"
     cmds:
-      - helm uninstall keycloak-app --wait -n keycloak
-      - kubectl delete ns keycloak
+      - helm uninstall {{ .TEST_RELEASE_NAME }} -n {{ .TEST_NAMESPACE }}
+      - kubectl delete namespace {{ .TEST_NAMESPACE }}
     aliases:
-      - test-teardown
+      - cleanup
