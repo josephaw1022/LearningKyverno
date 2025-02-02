@@ -1,0 +1,12 @@
+version: "3"
+
+tasks:
+  install-fallback:
+    desc: "Install the fallback app"
+    cmds:
+      - kubectl apply -f fallback.yaml
+
+  install-kyverno-policy:
+    desc: "Install the Kyverno policy"
+    cmds:
+      - kubectl apply -f kyverno-policies

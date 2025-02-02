@@ -1,0 +1,37 @@
+version: "3"
+
+
+
+tasks:
+  cluster-create:
+    desc: "Create a new cluster"
+    aliases:
+      - create-cluster
+      - build
+    cmds:
+      - bash quick-spike.sh "{{.METALLB_CONFIG}}" "{{.CLUSTER_NAME}}"
+    quiet: true
+
+  cluster-delete:
+    desc: "Delete the cluster"
+    aliases:
+      - delete-cluster
+      - destroy
+      - clean
+    cmds:
+      - kind delete cluster --name "{{.CLUSTER_NAME}}"
+
+  helm-init:
+    desc: "Install all helm repos"
+    cmds:
+      - helmfile init
+
+  helm-install:
+    desc: "Install all charts"
+    cmds:
+      - helmfile apply
+
+  helm-uninstall:
+    desc: "Uninstall all charts"
+    cmds:
+      - helmfile delete --purge
