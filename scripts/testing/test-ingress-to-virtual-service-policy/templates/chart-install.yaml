@@ -1,0 +1,45 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nginx-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: registry-1.docker.io/bitnamicharts
+    targetRevision: 15.9.0
+    chart: nginx
+    helm:
+      values: |
+        commonLabels:
+          app.kubernetes.io/name: nginx
+          app.kubernetes.io/component: web
+        service:
+          type: ClusterIP
+          ports:
+            http: 80
+            https: 443
+        ingress:
+          enabled: true
+          ingressClassName: nginx
+          hostname: nginx.kyverno-spike.test
+          annotations:
+            kubernetes.io/ingress.class: nginx
+          tls: true
+          extraTls:
+          - hosts:
+              - nginx.kyverno-spike.test
+            secretName: kyverno-spike.test-tls
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nginx
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  managedNamespaceMetadata:
+    labels:
+      istio-injection: enabled

@@ -1,0 +1,101 @@
+version: "3"
+
+vars:
+  CLUSTER_NAME: "kyverno-spike"
+  METALLB_CONFIG: "./manifests/metallb-config.yaml"
+
+tasks:
+
+  default:
+    desc: "List all tasks"
+    cmds:
+      - task --list-all
+
+  cluster-create:
+    desc: "Create a new cluster"
+    dir: scripts
+    aliases:
+      - create-cluster
+      - build
+    cmds:
+      - bash quick-spike.sh "{{.METALLB_CONFIG}}" "{{.CLUSTER_NAME}}" 
+    quiet: true
+
+  cluster-delete:
+    desc: "Delete the cluster"
+    aliases:
+      - delete-cluster
+      - destroy
+      - clean
+    cmds:
+      - kind delete cluster --name "{{.CLUSTER_NAME}}"
+
+  helm-init:
+    desc: "Install all helm repos"
+    dir: scripts
+    cmds:
+      - helmfile init
+
+  helm-install:
+    desc: "Install all charts"
+    dir: scripts
+    cmds:
+      - helmfile apply
+
+  helm-uninstall:
+    desc: "Uninstall all charts"
+    dir: scripts
+    cmds:
+      - helmfile delete --purge
+
+  
+  install-fallback:
+    desc: "Install the fallback app"
+    dir: scripts/manifests
+    cmds:
+      - kubectl apply -f ./fallback.yaml
+
+  install-kyverno-policy:
+    desc: "Install the kyverno policy"
+    dir: scripts/manifests
+    cmds:
+      - kubectl apply -f ./kyverno-policies
+
+  
+  policy-test-setup:
+    desc: "Run the policy test setup: Creates an argo app that installs keycloak with an ingress"
+    dir: scripts/testing/test-ingress-to-virtual-service-policy
+    cmds:
+      - helm upgrade --install --wait keycloak-app . -n keycloak --create-namespace
+    aliases:
+      - deploy-keycloak
+
+  policy-test-describe:
+    desc: "Describe the policy test setup"
+    cmds:
+      -  kubectl describe app keycloak-app -n argocd
+      - kubectl get all -n keycloak
+
+
+  policy-test-run:
+    desc: "Run the policy test helm tests"
+    dir: scripts/testing/test-ingress-to-virtual-service-policy
+    cmds:
+      - helm test keycloak-app
+    aliases:
+      - run-tests
+      - tests
+      - test
+
+  policy-test-teardown:
+    desc: "Run the policy test teardown"
+    dir: scripts/testing/test-ingress-to-virtual-service-policy
+    cmds:
+      - helm uninstall keycloak-app --wait -n keycloak
+      - kubectl delete ns keycloak
+    aliases:
+      - test-teardown
+
+
+
+

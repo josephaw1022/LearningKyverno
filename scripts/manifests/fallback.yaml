@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fallback
+  labels:
+    istio-injection: enabled
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: fallback
+data:
+  default.conf: |
+    server {
+        listen 80;
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+        }
+    }
+  index.html: |
+    <html>
+    <head><title>Fallback</title></head>
+    <body><h1>Fallback</h1></body>
+    </html>
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: fallback
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+            - name: nginx-config
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: fallback
+spec:
+  selector:
+    app: nginx
+  ports:
+    - port: 80
+      targetPort: 80
+
+---
+
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: fallback-vs
+  namespace: fallback
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - istio-ingress/istio-gateway
+  http:
+    - route:
+        - destination:
+            host: nginx
+            port:
+              number: 80

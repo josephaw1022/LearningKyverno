@@ -1,0 +1,46 @@
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: virtualservice-test-sa
+  namespace: keycloak
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: virtualservice-test-cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: keycloak
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+
+
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-virtualservice
+  namespace: keycloak
+  annotations:
+    "helm.sh/hook": test
+spec:
+  restartPolicy: Never
+  serviceAccountName: virtualservice-test-sa
+  containers:
+    - name: kubectl
+      image: bitnami/kubectl:latest
+      command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Checking if VirtualService exists..."
+          kubectl get virtualservice keycloak-vs -n keycloak || exit 1

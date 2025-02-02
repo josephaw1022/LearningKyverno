@@ -1,0 +1,110 @@
+repositories:
+  - name: jetstack
+    url: https://charts.jetstack.io
+  - name: istio
+    url: https://istio-release.storage.googleapis.com/charts
+  - name: kyverno
+    url: https://kyverno.github.io/kyverno/
+  - name: metallb
+    url: https://metallb.github.io/metallb
+  - name: argo
+    url: https://argoproj.github.io/argo-helm
+
+releases:
+  - name: argo-cd
+    namespace: argocd
+    createNamespace: true
+    chart: argo/argo-cd
+    version: 7.7.22
+    wait: true
+    values: []
+
+  - name: metallb
+    namespace: metallb-system
+    createNamespace: true
+    chart: metallb/metallb
+    wait: true
+    needs: []
+
+  - name: cert-manager
+    namespace: cert-manager
+    createNamespace: true
+    chart: jetstack/cert-manager
+    version: v1.16.3
+    wait: true
+    values:
+      - crds:
+          enabled: true
+    needs:
+      - metallb-system/metallb
+    hooks:
+      - events: ["postsync"]
+        showlogs: true
+        command: kubectl
+        args:
+          - "apply"
+          - "-f"
+          - "./manifests/cluster-issuer.yaml"
+
+  - name: istio-base
+    namespace: istio-system
+    createNamespace: true
+    chart: istio/base
+    wait: true
+    needs:
+      - cert-manager/cert-manager
+
+  - name: istiod
+    namespace: istio-system
+    chart: istio/istiod
+    wait: true
+    needs:
+      - istio-system/istio-base
+
+  - name: istio-ingress
+    namespace: istio-ingress
+    createNamespace: true
+    chart: istio/gateway
+    wait: true
+    needs:
+      - istio-system/istiod
+    hooks:
+      - events: ["presync"]
+        showlogs: true
+        command: kubectl
+        args:
+          - "apply"
+          - "-f"
+          - "./manifests/metallb-config.yaml"
+
+      - events: ["postsync"]
+        showlogs: true
+        command: kubectl
+        args:
+          - "apply"
+          - "-f"
+          - "./manifests/istio-gateway-cert.yaml"
+
+      - events: ["postsync"]
+        showlogs: true
+        command: kubectl
+        args:
+          - "apply"
+          - "-f"
+          - "./manifests/istio-gateway.yaml"
+
+  - name: kyverno
+    namespace: kyverno
+    createNamespace: true
+    chart: kyverno/kyverno
+    wait: true
+    needs:
+      - istio-ingress/istio-ingress
+    hooks:
+      - events: ["postsync"]
+        showlogs: true
+        command: kubectl
+        args:
+          - "apply"
+          - "-f"
+          - "./manifests/kyverno-cluster-rbac.yaml"
